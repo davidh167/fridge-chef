@@ -116,20 +116,31 @@ npm run dev
 - **Frontend:** https://fridge-chef-theta.vercel.app/
 - **Backend:** AWS EC2 t2.micro running FastAPI on port 8000 and the agent worker
 
-### EC2 Setup (Amazon Linux 2)
+### EC2 Setup (Amazon Linux 2 or Amazon Linux 2023)
+
+Launch a t2.micro, open inbound TCP port 8000 in the Security Group, then:
 
 ```bash
-sudo yum update -y && sudo yum install python3 python3-pip git -y
+# 1. SSH in and clone the repo
+ssh -i ~/your-key.pem ec2-user@<EC2_PUBLIC_IP>
 git clone https://github.com/your-username/fridge-chef.git
-cd fridge-chef/backend
-pip3 install poetry && poetry install
-# Copy .env to the server (scp or paste)
-poetry run python rag.py                              # ingest PDF once
-nohup poetry run uvicorn server:app --host 0.0.0.0 --port 8000 &
-nohup poetry run python agent.py start &
+cd fridge-chef
+
+# 2. Copy your .env to the server (run from your local machine)
+scp -i ~/your-key.pem backend/.env ec2-user@<EC2_PUBLIC_IP>:~/fridge-chef/backend/.env
+
+# 3. Run the setup script — handles package install, Poetry, PDF ingestion, and starts both processes
+chmod +x backend/setup_ec2.sh
+bash backend/setup_ec2.sh
 ```
 
-Open port 8000 in the EC2 Security Group inbound rules.
+The script works on both Amazon Linux 2 (`yum`) and Amazon Linux 2023 (`dnf`) — it detects which package manager is available.
+
+After it runs, check logs with:
+```bash
+tail -f /tmp/fridge-chef-server.log   # FastAPI
+tail -f /tmp/fridge-chef-agent.log    # LiveKit agent
+```
 
 ## Known Limitations
 
