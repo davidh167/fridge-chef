@@ -97,13 +97,17 @@ class ChefMarco(Agent):
         try:
             rag_result = rag.query(user_text)
         except Exception:
+            logger.warning("RAG query failed for text: %s", user_text)
             return
 
         if rag_result:
+            logger.info("RAG: injecting context for query=%r snippet=%r", user_text, rag_result[:120])
             turn_ctx.add_message(
                 role="system",
                 content=f"Relevant cookbook context (use naturally if helpful, ignore if not relevant):\n{rag_result}",
             )
+        else:
+            logger.info("RAG: no relevant context found for query=%r", user_text)
 
 
 def prewarm(proc) -> None:
