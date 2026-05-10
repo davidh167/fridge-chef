@@ -19,6 +19,7 @@ export default function CallControls({
   setCallState,
 }: CallControlsProps) {
   const [room, setRoom] = useState<Room | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const startCall = useCallback(async () => {
     setCallState("connecting");
@@ -65,6 +66,13 @@ export default function CallControls({
     }
   }, [onRoomConnected, onRoomDisconnected, setCallState]);
 
+  const toggleMute = useCallback(async () => {
+    if (!room) return;
+    const next = !isMuted;
+    await room.localParticipant.setMicrophoneEnabled(!next);
+    setIsMuted(next);
+  }, [room, isMuted]);
+
   const endCall = useCallback(async () => {
     if (room) {
       // Explicitly stop the underlying MediaStreamTrack so the browser
@@ -75,6 +83,7 @@ export default function CallControls({
       await room.disconnect();
       setRoom(null);
     }
+    setIsMuted(false);
     setCallState("idle");
     onRoomDisconnected();
   }, [room, setCallState, onRoomDisconnected]);
@@ -100,13 +109,27 @@ export default function CallControls({
           Connecting…
         </button>
       ) : (
-        <button
-          onClick={endCall}
-          className="flex items-center gap-3 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 px-8 py-4 text-white font-semibold text-lg shadow-lg shadow-red-900/40 transition-all duration-200"
-        >
-          <PhoneOffIcon className="w-5 h-5" />
-          End Call
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleMute}
+            title={isMuted ? "Unmute" : "Mute"}
+            className={`flex items-center gap-2 rounded-full px-5 py-4 font-semibold text-sm transition-all duration-200 active:scale-95 ${
+              isMuted
+                ? "bg-yellow-500 hover:bg-yellow-400 text-black"
+                : "bg-zinc-700 hover:bg-zinc-600 text-white"
+            }`}
+          >
+            {isMuted ? <MicOffIcon className="w-5 h-5" /> : <MicIcon className="w-5 h-5" />}
+            {isMuted ? "Unmute" : "Mute"}
+          </button>
+          <button
+            onClick={endCall}
+            className="flex items-center gap-3 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 px-6 py-4 text-white font-semibold text-sm shadow-lg shadow-red-900/40 transition-all duration-200"
+          >
+            <PhoneOffIcon className="w-5 h-5" />
+            End Call
+          </button>
+        </div>
       )}
       {callState === "error" && (
         <p className="text-red-400 text-sm">Connection failed. Check backend and try again.</p>
@@ -120,6 +143,16 @@ function MicIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+    </svg>
+  );
+}
+
+function MicOffIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <line x1="1" y1="1" x2="23" y2="23" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23M12 19v4M8 23h8" />
     </svg>
   );
 }

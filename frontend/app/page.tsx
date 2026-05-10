@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Room, RoomEvent, Track, Participant, TranscriptionSegment } from "livekit-client";
+import { Room, RoomEvent, Participant, TranscriptionSegment } from "livekit-client";
+import { RoomAudioRenderer, RoomContext } from "@livekit/components-react";
 import CallControls, { CallState } from "./components/CallControls";
 import Transcript, { Message } from "./components/Transcript";
 import PdfUpload from "./components/PdfUpload";
@@ -12,8 +13,8 @@ export default function Home() {
   const [pendingAgentText, setPendingAgentText] = useState("");
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const roomRef = useRef<Room | null>(null);
-  // Container to hold <audio> elements injected by LiveKit
-  const audioContainerRef = useRef<HTMLDivElement>(null);
+  // Stateful room reference for RoomContext.Provider — triggers re-render on connect/disconnect
+  const [connectedRoom, setConnectedRoom] = useState<Room | null>(null);
   // Buffer user speech fragments so pauses don't create separate bubbles
   const userSegmentBufferRef = useRef<string>("");
   const userSegmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,33 +49,8 @@ export default function Home() {
         ];
       });
 
-      // Attach incoming remote audio tracks to real <audio> elements so they play
-      room.on(RoomEvent.TrackSubscribed, (track, _pub, _participant) => {
-        if (track.kind === Track.Kind.Audio) {
-          const el = track.attach();
-          el.style.display = "none";
-          audioContainerRef.current?.appendChild(el);
-        }
-      });
-
-      // Catch tracks already published before the listener was registered —
-      // this happens on EC2 where the pre-warmed agent joins before we get here
-      room.remoteParticipants.forEach((participant) => {
-        participant.audioTrackPublications.forEach((pub) => {
-          if (pub.track && pub.isSubscribed) {
-            const el = pub.track.attach();
-            el.style.display = "none";
-            audioContainerRef.current?.appendChild(el);
-          }
-        });
-      });
-
-      // Clean up audio elements when a track is unsubscribed
-      room.on(RoomEvent.TrackUnsubscribed, (track) => {
-        if (track.kind === Track.Kind.Audio) {
-          track.detach().forEach((el) => el.remove());
-        }
-      });
+      // Provide room to RoomContext so RoomAudioRenderer can manage audio automatically
+      setConnectedRoom(room);
 
       // Track active speakers to drive the speaking indicator
       room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
@@ -123,19 +99,21 @@ export default function Home() {
 
   const handleRoomDisconnected = useCallback(() => {
     roomRef.current = null;
+    setConnectedRoom(null);
     setIsAgentSpeaking(false);
     setPendingAgentText("");
     if (userSegmentTimerRef.current) clearTimeout(userSegmentTimerRef.current);
     userSegmentBufferRef.current = "";
-    if (audioContainerRef.current) {
-      audioContainerRef.current.innerHTML = "";
-    }
   }, []);
 
   return (
     <main className="min-h-screen flex flex-col items-center bg-[#0f0f0f]">
-      {/* Hidden container for LiveKit audio elements */}
-      <div ref={audioContainerRef} aria-hidden="true" />
+      {/* RoomAudioRenderer handles remote audio automatically — no manual track attachment needed */}
+      {connectedRoom && (
+        <RoomContext.Provider value={connectedRoom}>
+          <RoomAudioRenderer />
+        </RoomContext.Provider>
+      )}
       {/* Header */}
       <header className="w-full max-w-2xl px-4 pt-10 pb-6 flex flex-col items-center gap-2">
         <div className="flex items-center gap-3">
