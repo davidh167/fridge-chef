@@ -2,6 +2,7 @@
 name = "fridge-chef-backend"
 version = "0.1.0"
 description = "Fridge Chef voice agent backend"
+package-mode = false
 authors = [
     {name = "David Hernandez",email = "dhern167@calpoly.edu"}
 ]
