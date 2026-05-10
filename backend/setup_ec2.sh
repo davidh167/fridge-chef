@@ -25,24 +25,34 @@ fi
 
 echo "==> Installing system packages via $PKG"
 sudo "$PKG" update -y
-sudo "$PKG" install -y git python3 python3-pip
+# python3.11 is available in both AL2023 (dnf) and AL2 extras repos
+sudo "$PKG" install -y git python3.11 python3.11-pip 2>/dev/null || {
+  # Fallback for AL2: python3.11 lives in amazon-linux-extras
+  sudo amazon-linux-extras install python3.11 -y
+}
+
+# Point python3 at 3.11 for the rest of this script
+PYTHON311="$(command -v python3.11)"
+echo "==> Using Python: $PYTHON311 ($($PYTHON311 --version))"
 
 # ---------------------------------------------------------------------------
-# 2. Poetry — install via pip so it picks a version compatible with system Python
+# 2. Poetry — install via pip3.11 so it runs under the right interpreter
 # ---------------------------------------------------------------------------
-if ! command -v poetry &>/dev/null; then
-  echo "==> Installing Poetry via pip3"
-  pip3 install --user poetry
-fi
-
-# Make sure pip's user-bin is on PATH for the rest of the script
 export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v poetry &>/dev/null; then
+  echo "==> Installing Poetry via pip3.11"
+  "$PYTHON311" -m pip install --user poetry
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Python dependencies
 # ---------------------------------------------------------------------------
-echo "==> Installing Python dependencies"
+echo "==> Pointing Poetry at Python 3.11"
 cd "$BACKEND_DIR"
+poetry env use "$PYTHON311"
+
+echo "==> Installing Python dependencies"
 poetry install --no-interaction
 
 # ---------------------------------------------------------------------------
