@@ -3,10 +3,11 @@ import os
 import chromadb
 from chromadb.errors import NotFoundError
 from dotenv import load_dotenv
-from llama_index.core import SimpleDirectoryReader, Settings, StorageContext, VectorStoreIndex
+from llama_index.core import Settings, StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
+from llama_index.readers.file import PyMuPDFReader
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 load_dotenv()
@@ -28,7 +29,9 @@ def _chroma_client() -> chromadb.PersistentClient:
 def ingest_pdf(filepath: str) -> None:
     global _retriever
 
-    docs = SimpleDirectoryReader(input_files=[filepath]).load_data()
+    # PyMuPDFReader extracts clean text from real-world PDFs reliably;
+    # SimpleDirectoryReader's default pypdf backend returns binary junk on complex layouts
+    docs = PyMuPDFReader().load(file_path=filepath)
 
     client = _chroma_client()
     try:
