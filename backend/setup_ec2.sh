@@ -53,7 +53,7 @@ cd "$BACKEND_DIR"
 poetry env use "$PYTHON311"
 
 echo "==> Installing Python dependencies"
-poetry install --no-interaction
+poetry install --no-interaction --no-root
 
 # ---------------------------------------------------------------------------
 # 4. .env check
