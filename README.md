@@ -149,3 +149,4 @@ tail -f /tmp/fridge-chef-agent.log    # LiveKit agent
 - PDF ingestion is synchronous and blocks the server briefly
 - Free ElevenLabs tier requires using pre-made voices (no custom voice cloning)
 - Agent and FastAPI run as `nohup` jobs — not auto-restarted on crash in this setup
+- **No per-user data isolation** — there is one shared ChromaDB collection for all users. A PDF uploaded by any user updates Marco's knowledge for everyone, and re-ingesting replaces the previous collection entirely. In production, you would namespace collections by user ID (Pinecone namespaces, pgvector row-level filtering, etc.) and add authentication to the upload endpoint
