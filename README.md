@@ -13,6 +13,9 @@ Browser (Next.js on Vercel)
   │       └─► POST /token  (FastAPI on EC2)
   │               └─► LiveKit API: mint JWT + dispatch "fridge-chef" agent to room
   │
+  ├─► POST /api/upload-pdf  (Next.js server route)
+  │       └─► POST /upload-pdf  (FastAPI on EC2) ──► LlamaIndex ingest ──► ChromaDB
+  │
   └─► WebRTC audio ──► LiveKit Cloud ──► agent.py  (Python worker on EC2)
                                               │
                                     ┌─────────┼─────────┐
@@ -54,7 +57,7 @@ Browser (Next.js on Vercel)
 | Tool call | Spoonacular API |
 | Backend HTTP | FastAPI + uvicorn |
 | Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS, LiveKit JS SDK, react-markdown |
-| Hosting | Vercel (frontend), AWS EC2 t2.micro (backend + agent), LiveKit Cloud (WebRTC rooms) |
+| Hosting | Vercel (frontend), AWS EC2 t3.small (backend + agent), LiveKit Cloud (WebRTC rooms) |
 
 ## Design Decisions & Trade-offs
 
@@ -68,7 +71,7 @@ Browser (Next.js on Vercel)
 ## Setup Instructions (Local)
 
 ### Prerequisites
-- Python 3.12+, Poetry
+- Python 3.11+, Poetry
 - Node.js 18+, npm
 - Accounts with: LiveKit Cloud, OpenAI, Deepgram, ElevenLabs, Spoonacular
 
@@ -114,11 +117,11 @@ npm run dev
 ## Deployment
 
 - **Frontend:** https://fridge-chef-theta.vercel.app/
-- **Backend:** AWS EC2 t2.micro running FastAPI on port 8000 and the agent worker
+- **Backend:** AWS EC2 t3.small running FastAPI on port 8000 and the agent worker
 
 ### EC2 Setup (Amazon Linux 2 or Amazon Linux 2023)
 
-Launch a t2.micro, open inbound TCP port 8000 in the Security Group, then:
+Launch a t3.small (or larger — t2.micro OOMs during PDF ingestion), open inbound TCP port 8000 in the Security Group, then:
 
 ```bash
 # 1. SSH in and clone the repo

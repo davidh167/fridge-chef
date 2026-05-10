@@ -57,6 +57,18 @@ export default function Home() {
         }
       });
 
+      // Catch tracks already published before the listener was registered —
+      // this happens on EC2 where the pre-warmed agent joins before we get here
+      room.remoteParticipants.forEach((participant) => {
+        participant.audioTrackPublications.forEach((pub) => {
+          if (pub.track && pub.isSubscribed) {
+            const el = pub.track.attach();
+            el.style.display = "none";
+            audioContainerRef.current?.appendChild(el);
+          }
+        });
+      });
+
       // Clean up audio elements when a track is unsubscribed
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         if (track.kind === Track.Kind.Audio) {
