@@ -1,0 +1,71 @@
+import os
+
+import chromadb
+from chromadb.errors import NotFoundError
+from dotenv import load_dotenv
+from llama_index.core import SimpleDirectoryReader, Settings, StorageContext, VectorStoreIndex
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.llms.openai import OpenAI
+from llama_index.vector_stores.chroma import ChromaVectorStore
+
+load_dotenv()
+
+COLLECTION_NAME = "fridge_chef_docs"
+CHROMA_PERSIST_DIR = os.environ.get("CHROMA_PERSIST_DIR", "./chroma_store")
+
+Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+Settings.node_parser = SentenceSplitter(chunk_size=512, chunk_overlap=50)
+Settings.llm = OpenAI(model="gpt-4o-mini")
+
+_query_engine = None
+
+
+def _chroma_client() -> chromadb.PersistentClient:
+    return chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+
+
+def ingest_pdf(filepath: str) -> None:
+    global _query_engine
+
+    docs = SimpleDirectoryReader(input_files=[filepath]).load_data()
+
+    client = _chroma_client()
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except NotFoundError:
+        pass
+
+    collection = client.create_collection(COLLECTION_NAME)
+    vector_store = ChromaVectorStore(chroma_collection=collection)
+    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+    VectorStoreIndex.from_documents(docs, storage_context=storage_context)
+
+    _query_engine = None
+
+
+def get_query_engine():
+    global _query_engine
+
+    if _query_engine is not None:
+        return _query_engine
+
+    client = _chroma_client()
+    collection = client.get_collection(COLLECTION_NAME)
+    vector_store = ChromaVectorStore(chroma_collection=collection)
+    index = VectorStoreIndex.from_vector_store(vector_store)
+
+    _query_engine = index.as_query_engine(similarity_top_k=3)
+    return _query_engine
+
+
+def query(question: str) -> str:
+    response = get_query_engine().query(question)
+    return str(response)
+
+
+if __name__ == "__main__":
+    ingest_pdf("../data/salt_fat_acid_heat.pdf")
+    result = query("What does Nosrat say about the role of salt in cooking?")
+    print(result)

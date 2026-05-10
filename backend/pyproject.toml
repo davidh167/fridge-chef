@@ -1,0 +1,28 @@
+[project]
+name = "fridge-chef-backend"
+version = "0.1.0"
+description = "Fridge Chef voice agent backend"
+authors = [
+    {name = "David Hernandez",email = "dhern167@calpoly.edu"}
+]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastapi (>=0.110.0)",
+    "uvicorn[standard] (>=0.29.0)",
+    "python-multipart (>=0.0.9)",
+    "python-dotenv (>=1.0.0)",
+    "openai (>=1.0.0)",
+    "requests (>=2.31.0)",
+    "onnxruntime (>=1.14.1,<=1.25.1)",
+    "llama-index (>=0.10.0)",
+    "llama-index-vector-stores-chroma (>=0.1.0)",
+    "llama-index-embeddings-openai (>=0.1.0)",
+    "llama-index-llms-openai (>=0.1.0)",
+    "chromadb (>=0.4.0)",
+    "livekit-agents[deepgram,elevenlabs,openai,silero] (>=0.8.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
