@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { Room, RoomEvent, Track, Participant, TranscriptionSegment } from "livekit-client";
 import CallControls, { CallState } from "./components/CallControls";
 import Transcript, { Message } from "./components/Transcript";
+import PdfUpload from "./components/PdfUpload";
 
 export default function Home() {
   const [callState, setCallState] = useState<CallState>("idle");
@@ -154,13 +155,14 @@ export default function Home() {
       </section>
 
       {/* Controls */}
-      <footer className="w-full max-w-2xl px-4 pb-10 flex flex-col items-center gap-6">
+      <footer className="w-full max-w-2xl px-4 pb-10 flex flex-col items-center gap-4">
         <CallControls
           callState={callState}
           setCallState={setCallState}
           onRoomConnected={handleRoomConnected}
           onRoomDisconnected={handleRoomDisconnected}
         />
+        <PdfUpload />
         <p className="text-zinc-600 text-xs text-center">
           Powered by LiveKit · ElevenLabs · GPT-4o mini
         </p>

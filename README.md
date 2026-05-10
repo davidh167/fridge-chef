@@ -113,7 +113,7 @@ npm run dev
 
 ## Deployment
 
-- **Frontend:** [Vercel deployment link — add after deploy]
+- **Frontend:** https://fridge-chef-theta.vercel.app/
 - **Backend:** AWS EC2 t2.micro running FastAPI on port 8000 and the agent worker
 
 ### EC2 Setup (Amazon Linux 2)
