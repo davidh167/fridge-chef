@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Annotated
 
@@ -7,6 +8,8 @@ from livekit.plugins import deepgram, elevenlabs, openai, silero
 
 import rag
 import tools
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -54,7 +57,10 @@ You are speaking aloud, so format everything for text-to-speech:
 async def find_recipes(
     ingredients: Annotated[list[str], "List of ingredients the user has"],
 ) -> str:
-    return tools.find_recipes_by_ingredients(ingredients)
+    logger.info("Tool call: find_recipes triggered with ingredients=%s", ingredients)
+    result = tools.find_recipes_by_ingredients(ingredients)
+    logger.info("Tool call: find_recipes returned: %s", result)
+    return result
 
 
 class ChefMarco(Agent):
