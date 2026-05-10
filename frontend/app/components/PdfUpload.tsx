@@ -19,12 +19,11 @@ export default function PdfUpload() {
     setUploadState("uploading");
     setMessage("");
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
     const form = new FormData();
     form.append("file", file);
 
     try {
-      const res = await fetch(`${apiUrl}/upload-pdf`, {
+      const res = await fetch("/api/upload-pdf", {
         method: "POST",
         body: form,
       });
