@@ -18,7 +18,7 @@ Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
 Settings.node_parser = SentenceSplitter(chunk_size=512, chunk_overlap=50)
 Settings.llm = OpenAI(model="gpt-4o-mini")
 
-_query_engine = None
+_retriever = None
 
 
 def _chroma_client() -> chromadb.PersistentClient:
@@ -26,7 +26,7 @@ def _chroma_client() -> chromadb.PersistentClient:
 
 
 def ingest_pdf(filepath: str) -> None:
-    global _query_engine
+    global _retriever
 
     docs = SimpleDirectoryReader(input_files=[filepath]).load_data()
 
@@ -42,27 +42,32 @@ def ingest_pdf(filepath: str) -> None:
 
     VectorStoreIndex.from_documents(docs, storage_context=storage_context)
 
-    _query_engine = None
+    _retriever = None
 
 
 def get_query_engine():
-    global _query_engine
+    # kept for backward compatibility (prewarm call in agent.py)
+    global _retriever
 
-    if _query_engine is not None:
-        return _query_engine
+    if _retriever is not None:
+        return _retriever
 
     client = _chroma_client()
     collection = client.get_collection(COLLECTION_NAME)
     vector_store = ChromaVectorStore(chroma_collection=collection)
     index = VectorStoreIndex.from_vector_store(vector_store)
 
-    _query_engine = index.as_query_engine(similarity_top_k=3)
-    return _query_engine
+    # Use a retriever instead of a query engine — returns raw book text
+    # rather than an LLM-synthesized summary, so GPT-4o-mini in agent.py
+    # works from the actual source material rather than a paraphrase of it
+    _retriever = index.as_retriever(similarity_top_k=3)
+    return _retriever
 
 
 def query(question: str) -> str:
-    response = get_query_engine().query(question)
-    return str(response)
+    nodes = get_query_engine().retrieve(question)
+    # Join the raw chunk text from the book with a separator
+    return "\n\n---\n\n".join(node.get_content() for node in nodes)
 
 
 if __name__ == "__main__":
