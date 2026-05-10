@@ -28,14 +28,14 @@ sudo "$PKG" update -y
 sudo "$PKG" install -y git python3 python3-pip
 
 # ---------------------------------------------------------------------------
-# 2. Poetry
+# 2. Poetry — install via pip so it picks a version compatible with system Python
 # ---------------------------------------------------------------------------
-if ! command -v poetry &>/dev/null && ! command -v ~/.local/bin/poetry &>/dev/null; then
-  echo "==> Installing Poetry"
-  curl -sSL https://install.python-poetry.org | python3 -
+if ! command -v poetry &>/dev/null; then
+  echo "==> Installing Poetry via pip3"
+  pip3 install --user poetry
 fi
 
-# Make sure poetry is on PATH for the rest of the script
+# Make sure pip's user-bin is on PATH for the rest of the script
 export PATH="$HOME/.local/bin:$PATH"
 
 # ---------------------------------------------------------------------------

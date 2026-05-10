@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Load .env from backend/ first, then fall back to repo root
 load_dotenv()
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"), override=False)
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"), override=False)
 
 app = FastAPI(title="Fridge Chef API")
 

@@ -1,5 +1,5 @@
 # Environment variables — never commit secrets
-.env
+backend/.env
 .env.local
 .env.*.local
 
