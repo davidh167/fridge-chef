@@ -120,7 +120,8 @@ npm run dev
 
 ## Deployment
 
-- **Frontend:** https://fridge-chef.davidh.ai/
+- **Frontend:** https://fridge-chef.davidh.ai/ (my personal domain)
+- OR https://fridge-chef-theta.vercel.app/ 
 - **Backend:** AWS EC2 t3.small running FastAPI on port 8000 and the agent worker
 
 ### EC2 Setup (Amazon Linux 2 or Amazon Linux 2023)
