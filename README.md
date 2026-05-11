@@ -34,10 +34,12 @@ Browser (Next.js on Vercel)
 ## RAG Integration
 
 - **PDF source:** *Salt, Fat, Acid, Heat* by Samin Nosrat — teaches cooking principles and technique, not just recipes, which is what a voice cooking assistant actually needs
-- **Framework:** LlamaIndex `SimpleDirectoryReader` → `VectorStoreIndex` backed by ChromaDB
+- **PDF reader:** `PyMuPDFReader` (`llama-index-readers-file`) — handles real-world PDF layouts reliably; `SimpleDirectoryReader`'s default `pypdf` backend returns binary stream junk on formatted/complex PDFs, which was silently poisoning the vector store with garbage chunks
+- **Framework:** LlamaIndex `PyMuPDFReader` → `VectorStoreIndex` backed by ChromaDB
 - **Chunking strategy:** 512 tokens, 50-token overlap — large enough to capture full paragraphs of technique explanation without losing context at chunk boundaries
 - **Embedding model:** OpenAI `text-embedding-3-small` — accurate and cost-efficient
 - **Vector store:** ChromaDB (local persistent) — zero infrastructure needed for a demo; production would use Pinecone or pgvector on Supabase
+- **Retrieval mode:** `as_retriever()` (raw chunk injection) rather than `as_query_engine()` (synthesized answer) — the query engine was masking bad extractions by hallucinating plausible answers from GPT's training data; raw retrieval makes the actual source chunks visible in logs and forces honest grounding
 - **Retrieval hook:** top-3 chunks injected as a `system` message in `on_user_turn_completed` before the LLM responds; the prompt instructs Marco to reference the book naturally if relevant and ignore it if not
 
 ## Tool Call
@@ -53,7 +55,7 @@ Browser (Next.js on Vercel)
 | Layer | Tools |
 |-------|-------|
 | Voice agent | LiveKit Agents SDK (Python v1.5.8), Silero VAD, Deepgram STT (nova-3), ElevenLabs TTS, GPT-4o-mini |
-| RAG | LlamaIndex, ChromaDB, OpenAI `text-embedding-3-small` |
+| RAG | LlamaIndex, PyMuPDF (`llama-index-readers-file`), ChromaDB, OpenAI `text-embedding-3-small` |
 | Tool call | Spoonacular API |
 | Backend HTTP | FastAPI + uvicorn |
 | Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS, LiveKit JS SDK, react-markdown |
@@ -67,6 +69,8 @@ Browser (Next.js on Vercel)
 - **Single EC2 instance:** runs both FastAPI and the agent worker as `nohup` processes; production would use systemd services, a LiveKit worker pool, and an Auto Scaling Group for concurrent sessions
 - **Named agent dispatch:** the agent is registered as `fridge-chef` and the FastAPI `/token` endpoint dispatches it explicitly to each new room via the LiveKit API — cleaner than auto-dispatch and works correctly with the LiveKit Agent Console
 - **Silero VAD `min_silence_duration=0.8s`:** the default (~300ms) was too sensitive and cut off natural mid-sentence pauses; 800ms feels like a real conversation
+- **`RoomAudioRenderer` over manual track attachment:** replaced hand-wired `TrackSubscribed`/`TrackUnsubscribed` handlers and the `audioContainerRef` DOM workaround with `@livekit/components-react`'s `RoomAudioRenderer` inside a `RoomContext.Provider` — it handles the race condition where a pre-warmed agent publishes a track before the event listener registers, and manages audio element lifecycle automatically
+- **`PyMuPDFReader` over `SimpleDirectoryReader`:** the default reader silently stored binary PDF stream data as embeddings; the bug was invisible behind `as_query_engine()` because GPT synthesized plausible-sounding answers from its training data instead of the actual chunks — switching to `as_retriever()` and checking the logs exposed it immediately
 
 ## Setup Instructions (Local)
 
@@ -150,6 +154,5 @@ tail -f /tmp/fridge-chef-agent.log    # LiveKit agent
 - Single EC2 instance handles one agent session at a time
 - ChromaDB is local to the EC2 instance — not shared across restarts if the instance is replaced
 - PDF ingestion is synchronous and blocks the server briefly
-- Free ElevenLabs tier requires using pre-made voices (no custom voice cloning)
 - Agent and FastAPI run as `nohup` jobs — not auto-restarted on crash in this setup
 - **No per-user data isolation** — there is one shared ChromaDB collection for all users. A PDF uploaded by any user updates Marco's knowledge for everyone, and re-ingesting replaces the previous collection entirely. In production, you would namespace collections by user ID (Pinecone namespaces, pgvector row-level filtering, etc.) and add authentication to the upload endpoint
