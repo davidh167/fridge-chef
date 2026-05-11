@@ -148,6 +148,9 @@ After it runs, check logs with:
 tail -f /tmp/fridge-chef-server.log   # FastAPI
 tail -f /tmp/fridge-chef-agent.log    # LiveKit agent
 ```
+## Built With AI
+
+This project was built using **Augment AI** for coding (code generation, refactoring, debugging) and **Claude** for planning (architecture decisions, prompt design, problem decomposition).
 
 ## Known Limitations
 
